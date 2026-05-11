@@ -1,0 +1,8 @@
+services:
+  ordresystem:
+    build: .
+    ports:
+      - "8090:8090"
+    restart: unless-stopped
+    environment:
+      - PORT=8090

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – Ordrekø</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f5f5f5;
+      color: #111;
+      min-height: 100vh;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+
+    /* ---- LEFT PANEL ---- */
+    .panel-left {
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 36px 40px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .panel-left h2 {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #111;
+    }
+
+    /* Display */
+    .numpad-display {
+      background: #f9f9f9;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #111;
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+    }
+
+    .numpad-display.placeholder {
+      color: #bbb;
+      font-weight: 400;
+      font-size: 1.1rem;
+    }
+
+    /* Numpad */
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .numpad button {
+      background: #fff;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111;
+      padding: 16px 0;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s, transform 0.08s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .numpad button:hover {
+      background: #f0f0f0;
+      border-color: #bbb;
+    }
+
+    .numpad button:active {
+      transform: scale(0.94);
+      background: #e8e8e8;
+    }
+
+    .numpad button.btn-delete {
+      font-size: 1.1rem;
+      color: #888;
+    }
+
+    .numpad button.btn-enter {
+      background: #111;
+      color: #fff;
+      border-color: #111;
+      font-size: 1.1rem;
+    }
+
+    .numpad button.btn-enter:hover {
+      background: #333;
+      border-color: #333;
+    }
+
+    .numpad button.btn-enter:disabled {
+      background: #ccc;
+      border-color: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Feedback */
+    .feedback {
+      min-height: 22px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .feedback.error { color: #d32f2f; }
+    .feedback.success { color: #388e3c; }
+
+    /* Instructions */
+    .instructions {
+      margin-top: auto;
+      font-size: 0.8rem;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .instructions strong {
+      color: #d32f2f;
+    }
+
+    /* ---- RIGHT PANEL ---- */
+    .panel-right {
+      background: #fafafa;
+      padding: 36px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-right h2 {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #111;
+    }
+
+    .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .order-item {
+      background: #fff;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: itemIn 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    @keyframes itemIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .order-item.removing {
+      animation: itemOut 0.25s ease forwards;
+    }
+
+    @keyframes itemOut {
+      to { opacity: 0; transform: translateX(20px); }
+    }
+
+    .order-item-number {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #d32f2f;
+      letter-spacing: -0.02em;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .order-item-number:hover {
+      opacity: 0.7;
+    }
+
+    .order-item-timer {
+      font-size: 0.8rem;
+      color: #aaa;
+      font-weight: 500;
+    }
+
+    /* Timer bar */
+    .item-timer-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: #f5f5f5;
+    }
+
+    .item-timer-fill {
+      height: 100%;
+      background: #7ec8e3;
+      transition: width 1s linear;
+    }
+
+    .orders-empty {
+      color: #bbb;
+      font-size: 0.95rem;
+      padding: 12px 0;
+    }
+
+    /* Connection status */
+    .conn-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: #aaa;
+      margin-top: auto;
+    }
+
+    .conn-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ccc;
+      transition: background 0.3s;
+    }
+    .conn-dot.connected {
+      background: #4caf50;
+      box-shadow: 0 0 5px #4caf5055;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- LEFT: Add order -->
+  <div class="panel-left">
+    <h2>Legg til ordre</h2>
+
+    <div class="numpad-display placeholder" id="display">Angi nummer</div>
+
+    <div class="numpad">
+      <button onclick="numpad('7')">7</button>
+      <button onclick="numpad('8')">8</button>
+      <button onclick="numpad('9')">9</button>
+      <button onclick="numpad('4')">4</button>
+      <button onclick="numpad('5')">5</button>
+      <button onclick="numpad('6')">6</button>
+      <button onclick="numpad('1')">1</button>
+      <button onclick="numpad('2')">2</button>
+      <button onclick="numpad('3')">3</button>
+      <button onclick="numpad('0')">0</button>
+      <button class="btn-delete" onclick="numpadDelete()">&#9003;</button>
+      <button class="btn-enter" id="btn-enter" onclick="submitOrder()" disabled>&#9166;</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="instructions">
+      <em>Levert av Upheads – www.upheads.no</em><br>
+      Når kunde henter sin ordre må du trykke på det <strong>røde tallet</strong>, tilsvarende til kundens ordrenummer.<br>
+      Ordrenummer blir automatisk fjernet i løpet av <strong>3 minutter</strong>
+    </div>
+  </div>
+
+  <!-- RIGHT: Orders ready -->
+  <div class="panel-right">
+    <h2>Ordre klare for henting</h2>
+    <div class="orders-list" id="orders-list">
+      <div class="orders-empty" id="orders-empty">Ingen ordre i køen ennå.</div>
+    </div>
+
+    <div class="conn-status">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-text">Kobler til...</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const AUTO_REMOVE_MS = 3 * 60 * 1000;
+  let input = '';
+  let knownOrders = [];
+
+  const display = document.getElementById('display');
+  const feedback = document.getElementById('feedback');
+  const btnEnter = document.getElementById('btn-enter');
+  const ordersList = document.getElementById('orders-list');
+  const ordersEmpty = document.getElementById('orders-empty');
+  const connDot = document.getElementById('conn-dot');
+  const connText = document.getElementById('conn-text');
+
+  function numpad(digit) {
+    if (input.length >= 6) return;
+    input += digit;
+    updateDisplay();
+  }
+
+  function numpadDelete() {
+    input = input.slice(0, -1);
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    if (input === '') {
+      display.textContent = 'Angi nummer';
+      display.classList.add('placeholder');
+    } else {
+      display.textContent = input;
+      display.classList.remove('placeholder');
+    }
+    btnEnter.disabled = input === '';
+    clearFeedback();
+  }
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') numpad(e.key);
+    else if (e.key === 'Backspace') numpadDelete();
+    else if (e.key === 'Enter') submitOrder();
+  });
+
+  async function submitOrder() {
+    if (!input) return;
+    const id = input;
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        input = '';
+        updateDisplay();
+        showFeedback(`Ordre ${id} lagt til`, 'success');
+      } else {
+        showFeedback(data.error || 'Feil', 'error');
+      }
+    } catch {
+      showFeedback('Nettverksfeil', 'error');
+    }
+  }
+
+  async function removeOrder(id) {
+    try {
+      await fetch(`/api/orders/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    } catch {
+      showFeedback('Nettverksfeil', 'error');
+    }
+  }
+
+  function showFeedback(msg, type) {
+    feedback.textContent = msg;
+    feedback.className = 'feedback ' + type;
+    setTimeout(clearFeedback, 3000);
+  }
+
+  function clearFeedback() {
+    feedback.textContent = '';
+    feedback.className = 'feedback';
+  }
+
+  function renderOrders(orders) {
+    const prevIds = new Set(knownOrders.map(o => o.id));
+    const newIds = new Set(orders.map(o => o.id));
+
+    // Remove stale items
+    prevIds.forEach(id => {
+      if (!newIds.has(id)) {
+        const el = document.getElementById(`item-${id}`);
+        if (el) {
+          el.classList.add('removing');
+          setTimeout(() => el.remove(), 250);
+        }
+      }
+    });
+
+    // Add new items
+    orders.forEach(order => {
+      if (!prevIds.has(order.id)) {
+        const item = createItem(order);
+        ordersList.insertBefore(item, ordersEmpty);
+      }
+    });
+
+    knownOrders = orders;
+    ordersEmpty.style.display = orders.length === 0 ? 'block' : 'none';
+    orders.forEach(updateItemTimer);
+  }
+
+  function createItem(order) {
+    const item = document.createElement('div');
+    item.className = 'order-item';
+    item.id = `item-${order.id}`;
+
+    const num = document.createElement('div');
+    num.className = 'order-item-number';
+    num.textContent = order.id;
+    num.title = 'Klikk for å fjerne';
+    num.onclick = () => removeOrder(order.id);
+
+    const timer = document.createElement('div');
+    timer.className = 'order-item-timer';
+    timer.id = `timer-text-${order.id}`;
+
+    const barWrap = document.createElement('div');
+    barWrap.className = 'item-timer-bar';
+    const barFill = document.createElement('div');
+    barFill.className = 'item-timer-fill';
+    barFill.id = `timer-bar-${order.id}`;
+    barWrap.appendChild(barFill);
+
+    item.appendChild(num);
+    item.appendChild(timer);
+    item.appendChild(barWrap);
+    return item;
+  }
+
+  function updateItemTimer(order) {
+    const elapsed = Date.now() - order.addedAt;
+    const remaining = Math.max(0, AUTO_REMOVE_MS - elapsed);
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+
+    const timerText = document.getElementById(`timer-text-${order.id}`);
+    if (timerText) timerText.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+
+    const bar = document.getElementById(`timer-bar-${order.id}`);
+    if (bar) bar.style.width = ((remaining / AUTO_REMOVE_MS) * 100) + '%';
+  }
+
+  setInterval(() => knownOrders.forEach(updateItemTimer), 1000);
+
+  // WebSocket
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+  function connect() {
+    const ws = new WebSocket(`${protocol}//${location.host}`);
+    ws.onopen = () => {
+      connDot.classList.add('connected');
+      connText.textContent = 'Tilkoblet';
+    };
+    ws.onclose = () => {
+      connDot.classList.remove('connected');
+      connText.textContent = 'Frakoblet – kobler til igjen...';
+      setTimeout(connect, 2000);
+    };
+    ws.onmessage = e => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'orders') renderOrders(msg.data);
+    };
+  }
+
+  connect();
+</script>
+</body>
+</html>

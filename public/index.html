@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ordre klare for henting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #ffffff;
+      color: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 32px 48px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2.6rem;
+      font-weight: 900;
+      color: #111;
+      letter-spacing: -0.02em;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 48px 48px;
+    }
+
+    /* Empty state */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      opacity: 0.35;
+    }
+
+    #empty-state p {
+      font-size: 1.4rem;
+      font-weight: 400;
+      color: #888;
+      letter-spacing: 0.02em;
+    }
+
+    /* Orders grid */
+    #orders-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+
+    /* Order card — matches screenshot: white bg, thick blue rounded border, huge number */
+    .order-card {
+      width: 240px;
+      height: 240px;
+      background: #ffffff;
+      border: 3px solid #7ec8e3;
+      border-radius: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      animation: cardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 24px rgba(126, 200, 227, 0.18);
+      overflow: hidden;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: scale(0.85); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    .order-card.removing {
+      animation: cardOut 0.3s ease forwards;
+    }
+
+    @keyframes cardOut {
+      to { opacity: 0; transform: scale(0.8); }
+    }
+
+    .order-number {
+      font-size: 7rem;
+      font-weight: 900;
+      color: #111;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    /* Timer bar at bottom of card */
+    .timer-bar-wrap {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 5px;
+      background: #e8f6fb;
+    }
+
+    .timer-bar {
+      height: 100%;
+      background: #7ec8e3;
+      transition: width 1s linear;
+    }
+
+    /* Connection dot top-right */
+    .status-dot {
+      position: fixed;
+      top: 18px;
+      right: 24px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ccc;
+      transition: background 0.3s;
+    }
+    .status-dot.connected {
+      background: #4caf50;
+      box-shadow: 0 0 6px #4caf5066;
+    }
+  </style>
+</head>
+<body>
+
+<div class="status-dot" id="status-dot"></div>
+
+<header>
+  <h1>Ordre klare for henting</h1>
+</header>
+
+<main>
+  <div id="empty-state">
+    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <p>Ingen ordre klare ennå</p>
+  </div>
+  <div id="orders-grid" style="display:none;"></div>
+</main>
+
+<script>
+  const AUTO_REMOVE_MS = 3 * 60 * 1000;
+  let knownOrders = [];
+
+  const grid = document.getElementById('orders-grid');
+  const emptyState = document.getElementById('empty-state');
+  const statusDot = document.getElementById('status-dot');
+
+  function renderOrders(orders) {
+    const prevIds = new Set(knownOrders.map(o => o.id));
+    const newIds = new Set(orders.map(o => o.id));
+
+    // Remove cards no longer in list
+    prevIds.forEach(id => {
+      if (!newIds.has(id)) {
+        const card = document.getElementById(`card-${CSS.escape(id)}`);
+        if (card) {
+          card.classList.add('removing');
+          setTimeout(() => card.remove(), 300);
+        }
+      }
+    });
+
+    // Add new cards
+    orders.forEach(order => {
+      if (!prevIds.has(order.id)) {
+        const card = createCard(order);
+        grid.appendChild(card);
+      }
+    });
+
+    knownOrders = orders;
+
+    const hasOrders = orders.length > 0;
+    emptyState.style.display = hasOrders ? 'none' : 'flex';
+    grid.style.display = hasOrders ? 'flex' : 'none';
+
+    // Update timer bars
+    orders.forEach(updateTimerBar);
+  }
+
+  function createCard(order) {
+    const card = document.createElement('div');
+    card.className = 'order-card';
+    card.id = `card-${order.id}`;
+
+    const num = document.createElement('div');
+    num.className = 'order-number';
+    num.textContent = order.id;
+
+    const timerWrap = document.createElement('div');
+    timerWrap.className = 'timer-bar-wrap';
+    const timerBar = document.createElement('div');
+    timerBar.className = 'timer-bar';
+    timerBar.id = `timer-${order.id}`;
+    timerWrap.appendChild(timerBar);
+
+    card.appendChild(num);
+    card.appendChild(timerWrap);
+    return card;
+  }
+
+  function updateTimerBar(order) {
+    const bar = document.getElementById(`timer-${order.id}`);
+    if (!bar) return;
+    const elapsed = Date.now() - order.addedAt;
+    const remaining = Math.max(0, AUTO_REMOVE_MS - elapsed);
+    bar.style.width = ((remaining / AUTO_REMOVE_MS) * 100) + '%';
+  }
+
+  // Keep timer bars updated every second
+  setInterval(() => knownOrders.forEach(updateTimerBar), 1000);
+
+  // WebSocket
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+  function connect() {
+    const ws = new WebSocket(`${protocol}//${location.host}`);
+    ws.onopen = () => statusDot.classList.add('connected');
+    ws.onclose = () => {
+      statusDot.classList.remove('connected');
+      setTimeout(connect, 2000);
+    };
+    ws.onmessage = e => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'orders') renderOrders(msg.data);
+    };
+  }
+
+  connect();
+
+  // Auto-reload every 5 seconds as fallback
+  setTimeout(() => location.reload(), 5000);
+</script>
+</body>
+</html>
