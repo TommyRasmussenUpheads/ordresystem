@@ -1,8 +1,15 @@
 services:
   ordresystem:
     build: .
-    ports:
-      - "8090:8090"
+    container_name: ordresystem
     restart: unless-stopped
     environment:
       - PORT=8090
+    networks:
+      - default
+      - npm_net
+
+networks:
+  npm_net:
+    external: true
+    name: nginx-proxy-manager_default
