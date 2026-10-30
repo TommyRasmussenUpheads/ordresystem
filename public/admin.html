@@ -13,13 +13,28 @@
       font-family: 'Inter', sans-serif;
       background: #f5f5f5;
       color: #111;
-      min-height: 100vh;
+      min-height: calc(100vh - 32px);
+    }
+
+    body { padding-bottom: 32px; }
+
+    .build-version {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      height: 32px;
+      padding: 8px 12px;
+      background: #f5f5f5;
+      color: #666;
+      font-size: 12px;
+      text-align: right;
     }
 
     .layout {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      min-height: 100vh;
+      min-height: calc(100vh - 32px);
     }
 
     /* ---- LEFT PANEL ---- */
@@ -296,6 +311,8 @@
   </div>
 
 </div>
+
+<footer class="build-version" aria-label="Byggversjon">v2026.10.30</footer>
 
 <script>
   const AUTO_REMOVE_MS = 3 * 60 * 1000;
